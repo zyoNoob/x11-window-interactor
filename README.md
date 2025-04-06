@@ -38,7 +38,7 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
 The screen capture functionality uses a C library for improved performance. To build it:
 
 ```bash
-gcc -shared -O3 -lX11 -fPIC -Wl,-soname,prtscn -o prtscn.so prtscn.c
+gcc -O3 -fPIC -Wall -Wextra -shared prtscn.c -o prtscn.so -lX11 -Wl,-soname=prtscn 
 ```
 
 To setup the python environment use uv toolkit.
