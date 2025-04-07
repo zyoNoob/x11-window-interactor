@@ -4,15 +4,12 @@ import Xlib.X
 import Xlib.protocol.event
 import subprocess
 import numpy as np
-import cv2
 import time
-import ctypes
-import os
+import mss
 
 class X11WindowInteractor:
     def __init__(self, window_id=None):
-        self.LibName_ = 'prtscn.so'
-        self.AbsLibPath_ = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + self.LibName_
+        self.sct = mss.mss()
         self.display = Xlib.display.Display()
         self.root = self.display.screen().root
         if window_id is None:
@@ -148,27 +145,19 @@ class X11WindowInteractor:
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
-    def capture(self, tlwh: tuple = None) -> np.ndarray:
+    def capture(self, xywh: tuple = None) -> np.ndarray:
         """
-        Capture a region of the screen using the TLWH format.
+        Capture a region of the screen using the XYWH format.
         
         Parameters:
-            tlwh (tuple): (top, left, width, height) coordinates and dimensions
+            xywh (tuple): (x, y, width, height) coordinates and dimensions
                          If None, captures the entire window
         
         Returns:
-            np.ndarray: BGR image (OpenCV format)
+            np.ndarray: RGB image
         """
-        if not hasattr(self, 'grab'):
-            self.grab = ctypes.CDLL(self.AbsLibPath_)
-            # Update argument types
-            self.grab.init_capture.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
-            self.grab.capture_frame.argtypes = [ctypes.POINTER(ctypes.c_ubyte)]
-            self.grab.get_last_capture_time_us.restype = ctypes.c_long
-            self.grab.close_capture.argtypes = []
-
-        if tlwh:
-            x, y, w, h = tlwh
+        if xywh:
+            x, y, w, h = xywh
             x += self.window_info['x']
             y += self.window_info['y']
         else:
@@ -177,14 +166,6 @@ class X11WindowInteractor:
             w = self.window_info['width']
             h = self.window_info['height']
 
-        objlength = w * h * 3
-        buf = (ctypes.c_ubyte * objlength)()
-        assert self.grab.init_capture(x, y, w, h) == 0
-        self.grab.capture_frame(buf)
-        # Convert to numpy array and reshape
-        img_array = np.ctypeslib.as_array(buf).reshape((h, w, 3))
-        self.grab.close_capture()
-        # Convert from RGB to BGR for OpenCV compatibility
-        img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+        img_array = np.array(self.sct.grab({'left':x, 'top':y, 'width':w, 'height':h}))
         
         return img_array
