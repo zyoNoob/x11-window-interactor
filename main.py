@@ -44,7 +44,7 @@ def main():
     print("Cursor relative to window:", coordinates)
     interactor.click(coordinates[0], coordinates[1])
     time.sleep(5)
-    interactor.send_key(XK.XK_1)
+    interactor.send_key('1')
     time.sleep(2)
     # Run benchmark
     benchmark_capture(interactor)

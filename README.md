@@ -3,9 +3,10 @@
 `x11-window-interactor` is a Python utility for automating interaction with X11 windows on Linux. It allows you to:
 
 - 🔍 Identify and target X11 windows
+- 🔄 Automatically keep window position/size information updated in the background
 - 🖱️ Send mouse clicks to specific relative coordinates in the window
-- ⌨️ Send keyboard keypresses directly to the window
-- 📸 Capture screenshots of a window into OpenCV-compatible image arrays
+- ⌨️ Send keyboard keypresses directly to the window (supports various key types)
+- 📸 Capture screenshots of a window into NumPy arrays (compatible with OpenCV, Pillow, etc.)
 
 This tool is ideal for GUI automation, testing, and custom tooling in X environments.
 
@@ -14,10 +15,12 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
 ## 💪 Features
 
 - **Find window by clicking on it (via `xwininfo`)**
+- **Background thread** to keep window geometry (position, size) updated.
 - **Send mouse events** to any coordinates within the window
-- **Send keypresses** directly to the application (even in background)
-- **Capture the window** into a `cv2`-ready NumPy array
+- **Send keypresses** directly to the application (even in background) using simple key names
+- **Capture the window** into a NumPy array using `mss` for high performance
 - **Get relative cursor position** for easier automation script building
+- **Activate/Focus** the target window
 
 ---
 
@@ -29,16 +32,20 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
 - Packages:
   - `python-xlib`
   - `numpy`
-  - `opencv-python`
-  - `gcc` (for compiling the C code)
-  - `libx11-dev` (X11 development headers)
+  - `mss`
 
 ### Setting up the Python environment
 
-To setup the python environment use uv toolkit.
+Use `uv` (or `pip`) to install dependencies. If you have `pyproject.toml` configured for `uv`:
 
 ```bash
 uv sync
+```
+
+Or install manually:
+
+```bash
+pip install python-xlib numpy mss
 ```
 
 ---
@@ -63,56 +70,145 @@ x11-window-interactor/
 
 ```python
 from x11_interactor import X11WindowInteractor
+import time
 
-interactor = X11WindowInteractor()
+# Prompt user to click on a window
+interactor = X11WindowInteractor(update_interval=0.5) # Update window info every 0.5 seconds
+
+# Or provide a specific window ID (e.g., obtained from 'xwininfo' or 'wmctrl -lG')
+# window_id = 0x1234567 # Replace with actual ID
+# interactor = X11WindowInteractor(window_id=window_id)
+
+print(f"Interactor created for window ID: {interactor.window_id}")
+print(f"Initial window info: {interactor.window_info}")
+
+# Allow some time for the background updater to potentially get new info
+time.sleep(1)
+print(f"Updated window info: {interactor.window_info}")
+
 ```
 
-### 2. Get Cursor Coordinates Relative to the Window
+### 2. Activate the Window (Optional)
 
 ```python
-print(interactor.get_relative_cursor_position())
+# Bring the window to the foreground and focus it
+interactor.activate()
+time.sleep(0.1) # Small delay often helps
 ```
 
-### 3. Click Inside the Window
+### 3. Get Cursor Coordinates Relative to the Window
 
 ```python
-# Click at (x=200, y=300) relative to window
-interactor.click(200, 300)
+relative_x, relative_y = interactor.get_relative_cursor_position()
+print(f"Cursor position relative to window: ({relative_x}, {relative_y})")
 ```
 
-### 4. Send a Keypress
+### 4. Click Inside the Window
 
 ```python
-from Xlib import XK
+# Click at (x=50, y=100) relative to window's top-left corner
+interactor.click(50, 100)
 
-# Send a keypress (e.g., 'A')
-interactor.send_key(XK.XK_A)
+# Click with the right mouse button (button=3)
+# interactor.click(50, 100, button=3)
 ```
 
-### 5. Capture Screenshot
+### 5. Send a Keypress
+
+The `send_key` method accepts a string for a single key or a list of strings for key combinations (like Ctrl+C). Key names generally follow the standard X11 keysym names, but without the `XK_` prefix.
 
 ```python
+# Send a single character 'a'
+interactor.send_key('a')
+time.sleep(0.1)
+
+# Send an uppercase 'A' (Shift + a)
+interactor.send_key(['Shift_L', 'a']) # Use Shift_L or Shift_R
+time.sleep(0.1)
+
+# Send Ctrl+C (useful for copying)
+interactor.send_key(['Control_L', 'c']) # Use Control_L or Control_R
+time.sleep(0.1)
+
+# Send Alt+Tab (useful for switching windows, though activate() is better for targeting)
+interactor.send_key(['Alt_L', 'Tab']) # Use Alt_L or Alt_R
+time.sleep(0.1)
+
+# Send function key F5
+interactor.send_key('F5')
+time.sleep(0.1)
+
+# Send Enter/Return key
+interactor.send_key('Return')
+time.sleep(0.1)
+
+# Send Escape key
+interactor.send_key('Escape')
+time.sleep(0.1)
+
+# Send Numpad Enter key
+interactor.send_key('KP_Enter')
+time.sleep(0.1)
+
+# Send Numpad number 5
+interactor.send_key('KP_5')
+time.sleep(0.1)
+
+# Send Delete key
+interactor.send_key('Delete')
+time.sleep(0.1)
+```
+
+**Common Key Names:**
+
+*   **Modifiers:** `Shift_L`, `Shift_R`, `Control_L`, `Control_R`, `Alt_L` (Meta), `Alt_R`, `Super_L` (Win), `Super_R`
+*   **Function Keys:** `F1`, `F2`, ..., `F12`
+*   **Navigation:** `Home`, `End`, `Page_Up`, `Page_Down`, `Left`, `Right`, `Up`, `Down`
+*   **Editing:** `BackSpace`, `Delete`, `Insert`
+*   **Special:** `Tab`, `Return` (Enter), `Escape`, `space`
+*   **Numpad:** `KP_0`...`KP_9`, `KP_Add`, `KP_Subtract`, `KP_Multiply`, `KP_Divide`, `KP_Decimal`, `KP_Begin` (Num 5 when NumLock off), `KP_Enter`, `Num_Lock`
+*   **Characters:** `'a'`, `'b'`, `'A'`, `'1'`, `'!'`, `'-'`, etc. (Use the character itself, modifiers like Shift handled separately if needed)
+
+You can often find the exact keysym name you need by running the `xev` command in a terminal and pressing the desired key. Look for the name in parentheses after "keysym".
+
+### 6. Capture Screenshot
+
+```python
+import cv2 # Optional: for displaying the image
+
 # Capture the entire window
-img = interactor.capture()
-# Now you can use it with OpenCV
-cv2.imshow("Window Snapshot", img)
-cv2.waitKey(0)
+img_array = interactor.capture()
 
-# OR capture a specific region using XYWH format
-# XYWH = (x, y, width, height)
-xywh = (100, 100, 300, 200)
-# This will grab a (300x200) cropped image from the coordinates (100,100)
-img = interactor.capture(xywh)
-# Now you can use it with OpenCV
-cv2.imshow("Window Snapshot", img)
-cv2.waitKey(0)
+# The result is a NumPy array (BGRA format from mss)
+print(f"Captured image shape: {img_array.shape}")
+
+# Example: Display with OpenCV (requires opencv-python)
+# Convert BGRA to BGR for cv2.imshow
+# bgr_image = cv2.cvtColor(img_array, cv2.COLOR_BGRA2BGR)
+# cv2.imshow("Window Snapshot", bgr_image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+# OR capture a specific region relative to the window using XYWH format
+# XYWH = (relative_x, relative_y, width, height)
+xywh = (10, 20, 100, 50) # Capture a 100x50 region starting at (10, 20) within the window
+img_region = interactor.capture(xywh)
+print(f"Captured region shape: {img_region.shape}")
+
+# Example: Save the region using Pillow (requires Pillow)
+# from PIL import Image
+# img = Image.frombytes('RGB', (img_region.shape[1], img_region.shape[0]), img_region, 'raw', 'BGRX') # Adjust based on mss format
+# img.save('window_region.png')
+
 ```
 
-### 6. Benchmark Capture Performance
+### 7. Stop the Background Updater
+
+When you are finished interacting with the window, stop the background thread.
 
 ```python
-# Run benchmark to measure capture performance
-interactor.benchmark_capture(num_frames=100)
+interactor.stop()
+print("Background updater stopped.")
 ```
 
 ---
@@ -125,10 +221,11 @@ interactor.benchmark_capture(num_frames=100)
 
 ## 🧠 How It Works
 
-- Uses `Xlib` to communicate directly with the X11 windowing system
-- Utilizes `xwininfo` to let the user pick a target window
-- Sends low-level synthetic mouse and keyboard events directly to the window
-- Uses a high-performance mss library for screen capture.
+- Uses `python-xlib` to communicate directly with the X11 windowing system
+- Utilizes `xwininfo` (called via `subprocess`) to let the user pick a target window initially
+- Runs a background thread (`threading`) to periodically call `xwininfo` and keep the window's position and size (`geometry`) updated. This handles cases where the window is moved or resized after initialization.
+- Sends low-level synthetic mouse (`ButtonPress`, `ButtonRelease`) and keyboard (`KeyPress`, `KeyRelease`) events directly to the window.
+- Uses the high-performance `mss` library for efficient screen capture, returning a NumPy array.
 
 ---
 

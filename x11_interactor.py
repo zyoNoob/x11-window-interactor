@@ -153,9 +153,38 @@ class X11WindowInteractor:
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
-    def send_key(self, keysym):
-        # Simulate a keyboard key press and release using the given keysym
-        keycode = self.display.keysym_to_keycode(keysym)
+    def send_key(self, keys):
+        """
+        Send a key press to the window.
+
+        Parameters:
+            keys (str or list): Single keysym (e.g. 'a') or a list of keysyms (e.g. ['Control_L', 'c'])
+        """
+        if isinstance(keys, str):
+            keys = [keys]
+
+        # Convert keysyms to keycodes
+        keycodes = [self.display.keysym_to_keycode(Xlib.XK.string_to_keysym(k)) for k in keys]
+
+        # Press all modifier keys except the last (main key)
+        for keycode in keycodes[:-1]:
+            press = Xlib.protocol.event.KeyPress(
+                time=Xlib.X.CurrentTime,
+                root=self.root,
+                window=self.window,
+                same_screen=1,
+                child=Xlib.X.NONE,
+                root_x=0,
+                root_y=0,
+                event_x=0,
+                event_y=0,
+                state=0,
+                detail=keycode
+            )
+            self.window.send_event(press, propagate=True)
+
+        # Press and release the main key
+        main_keycode = keycodes[-1]
         press = Xlib.protocol.event.KeyPress(
             time=Xlib.X.CurrentTime,
             root=self.root,
@@ -167,8 +196,11 @@ class X11WindowInteractor:
             event_x=0,
             event_y=0,
             state=0,
-            detail=keycode
+            detail=main_keycode
         )
+        self.window.send_event(press, propagate=True)
+        self.display.sync()
+        time.sleep(0.05)
         release = Xlib.protocol.event.KeyRelease(
             time=Xlib.X.CurrentTime,
             root=self.root,
@@ -180,12 +212,27 @@ class X11WindowInteractor:
             event_x=0,
             event_y=0,
             state=0,
-            detail=keycode
+            detail=main_keycode
         )
-        self.window.send_event(press, propagate=True)
-        self.display.sync()
-        time.sleep(0.05)
         self.window.send_event(release, propagate=True)
+
+        # Release modifier keys in reverse order
+        for keycode in reversed(keycodes[:-1]):
+            release = Xlib.protocol.event.KeyRelease(
+                time=Xlib.X.CurrentTime,
+                root=self.root,
+                window=self.window,
+                same_screen=1,
+                child=Xlib.X.NONE,
+                root_x=0,
+                root_y=0,
+                event_x=0,
+                event_y=0,
+                state=0,
+                detail=keycode
+            )
+            self.window.send_event(release, propagate=True)
+
         self.display.sync()
 
     def capture(self, xywh: tuple = None) -> np.ndarray:
