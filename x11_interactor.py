@@ -161,8 +161,11 @@ class X11WindowInteractor:
         """
         if not hasattr(self, 'grab'):
             self.grab = ctypes.CDLL(self.AbsLibPath_)
-            self.grab.getScreen.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte)]
-            self.grab.getScreen.restype = None
+            # Update argument types
+            self.grab.init_capture.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+            self.grab.capture_frame.argtypes = [ctypes.POINTER(ctypes.c_ubyte)]
+            self.grab.get_last_capture_time_us.restype = ctypes.c_long
+            self.grab.close_capture.argtypes = []
 
         if tlwh:
             x, y, w, h = tlwh
@@ -175,12 +178,12 @@ class X11WindowInteractor:
             h = self.window_info['height']
 
         objlength = w * h * 3
-        result = (ctypes.c_ubyte * objlength)()
-
-        self.grab.getScreen(x, y, w, h, result)
-        
+        buf = (ctypes.c_ubyte * objlength)()
+        assert self.grab.init_capture(x, y, w, h) == 0
+        self.grab.capture_frame(buf)
         # Convert to numpy array and reshape
-        img_array = np.frombuffer(result, dtype=np.uint8).reshape(h, w, 3)
+        img_array = np.ctypeslib.as_array(buf).reshape((h, w, 3))
+        self.grab.close_capture()
         # Convert from RGB to BGR for OpenCV compatibility
         img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
         
