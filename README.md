@@ -33,21 +33,13 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
   - `gcc` (for compiling the C code)
   - `libx11-dev` (X11 development headers)
 
-### Building the C Library
-
-The screen capture functionality uses a C library for improved performance. To build it:
-
-```bash
-gcc -O3 -Wall -fPIC -shared prtscn.c -o prtscn.so -lX11 -lXext -Wl,-soname=prtscn
-```
+### Setting up the Python environment
 
 To setup the python environment use uv toolkit.
 
 ```bash
 uv sync
 ```
-
-The library must be in the same directory as `x11_interactor.py`.
 
 ---
 
@@ -60,8 +52,6 @@ x11-window-interactor/
 ├── pyproject.toml
 ├── README.md
 ├── .gitignore
-├── prtscn.c               # C library for screen capture
-├── prtscn.so              # Compiled C library
 └── .venv/                 # Virtual environment (optional)
 ```
 
@@ -108,11 +98,11 @@ img = interactor.capture()
 cv2.imshow("Window Snapshot", img)
 cv2.waitKey(0)
 
-# OR capture a specific region using TLWH format
-# TLWH = (top, left, width, height)
-tlwh = (100, 100, 300, 200)
+# OR capture a specific region using XYWH format
+# XYWH = (x, y, width, height)
+xywh = (100, 100, 300, 200)
 # This will grab a (300x200) cropped image from the coordinates (100,100)
-img = interactor.capture(tlwh)
+img = interactor.capture(xywh)
 # Now you can use it with OpenCV
 cv2.imshow("Window Snapshot", img)
 cv2.waitKey(0)
@@ -129,8 +119,6 @@ interactor.benchmark_capture(num_frames=100)
 
 ## 📷 Screenshots
 
-
-
 *Image not included – just a placeholder*
 
 ---
@@ -140,7 +128,7 @@ interactor.benchmark_capture(num_frames=100)
 - Uses `Xlib` to communicate directly with the X11 windowing system
 - Utilizes `xwininfo` to let the user pick a target window
 - Sends low-level synthetic mouse and keyboard events directly to the window
-- Uses a high-performance C library for screen capture, which reads raw pixel data from the X11 display using `XGetImage` and converts it into a usable format with NumPy + OpenCV
+- Uses a high-performance mss library for screen capture.
 
 ---
 
