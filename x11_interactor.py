@@ -5,6 +5,7 @@ import Xlib.protocol.event
 import subprocess
 import numpy as np
 import time
+import random
 import mss
 import threading
 
@@ -118,7 +119,7 @@ class X11WindowInteractor:
         )
         self.window.send_event(motion, propagate=True)
         self.display.sync()
-        time.sleep(0.05)
+        time.sleep(random.uniform(0.05, 0.1))
 
         # Press and release events
         press = Xlib.protocol.event.ButtonPress(
@@ -149,7 +150,7 @@ class X11WindowInteractor:
         )
         self.window.send_event(press, propagate=True)
         self.display.sync()
-        time.sleep(0.05)
+        time.sleep(random.uniform(0.05, 0.1))
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
@@ -200,7 +201,7 @@ class X11WindowInteractor:
         )
         self.window.send_event(press, propagate=True)
         self.display.sync()
-        time.sleep(0.05)
+        time.sleep(random.uniform(0.05, 0.1))
         release = Xlib.protocol.event.KeyRelease(
             time=Xlib.X.CurrentTime,
             root=self.root,
