@@ -1,6 +1,5 @@
 from x11_interactor import X11WindowInteractor
 from Xlib import XK
-import cv2
 import time
 import numpy as np
 
@@ -9,11 +8,11 @@ def benchmark_capture(interactor, num_frames=100):
     Benchmark the capture function by capturing multiple frames and calculating average FPS.
     """
     times = []
-    
+
     print("Starting benchmark...")
     for i in range(num_frames):
         start_time = time.time()
-        img = interactor.capture()
+        _ = interactor.capture()
         end_time = time.time()
         
         times.append(end_time - start_time)
@@ -26,7 +25,7 @@ def benchmark_capture(interactor, num_frames=100):
     times = np.array(times)
     avg_time = np.mean(times)
     fps = 1.0 / avg_time
-    
+
     print("\nBenchmark Results:")
     print(f"Average time per frame: {avg_time:.4f} seconds")
     print(f"Average FPS: {fps:.2f}")
@@ -36,15 +35,17 @@ def benchmark_capture(interactor, num_frames=100):
 
 def main():
     interactor = X11WindowInteractor()
+    interactor.activate()
     coordinates = interactor.get_relative_cursor_position()
 
-    time.sleep(5)
+    time.sleep(2)
     # Example usage
     interactor.activate()
     print("Cursor relative to window:", coordinates)
     interactor.click(coordinates[0], coordinates[1])
-    time.sleep(0.1)
-    
+    time.sleep(5)
+    interactor.send_key(XK.XK_1)
+    time.sleep(2)
     # Run benchmark
     benchmark_capture(interactor)
 
