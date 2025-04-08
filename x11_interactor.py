@@ -1,4 +1,5 @@
 import Xlib
+import Xlib.XK
 import Xlib.display
 import Xlib.X
 import Xlib.protocol.event
