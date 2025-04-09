@@ -417,7 +417,7 @@ class X11WindowInteractor:
                 h = max(1, y2 - y1)
                 param['roi'] = (x1, y1, w, h)
 
-        cv2.namedWindow(window_name)
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(window_name, mouse_callback, roi_data)
 
         print("Select ROI in the OpenCV window. Press ENTER to confirm, ESC to cancel.")
