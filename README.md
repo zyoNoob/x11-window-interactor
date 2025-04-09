@@ -6,7 +6,8 @@
 - 🔄 Automatically keep window position/size information updated in the background
 - 🖱️ Send mouse clicks to specific relative coordinates in the window
 - ⌨️ Send keyboard keypresses directly to the window (supports various key types)
-- 📸 Capture screenshots of a window into NumPy arrays (compatible with OpenCV, Pillow, etc.)
+- 📸 Capture screenshots of a window or a region into NumPy arrays (compatible with OpenCV, Pillow, etc.)
+- 🎯 Interactively select a Region of Interest (ROI) within the window using external tools (`slop`) or OpenCV.
 
 This tool is ideal for GUI automation, testing, and custom tooling in X environments.
 
@@ -18,9 +19,12 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
 - **Background thread** to keep window geometry (position, size) updated.
 - **Send mouse events** to any coordinates within the window
 - **Send keypresses** directly to the application (even in background) using simple key names
-- **Capture the window** into a NumPy array using `mss` for high performance
+- **Capture the window** or a specific **Region of Interest (ROI)** into a NumPy array using `mss` for high performance
 - **Get relative cursor position** for easier automation script building
 - **Activate/Focus** the target window
+- **Interactive ROI Selection:**
+    - Using `slop` command-line utility
+    - Using an OpenCV window
 
 ---
 
@@ -33,6 +37,9 @@ This tool is ideal for GUI automation, testing, and custom tooling in X environm
   - `python-xlib`
   - `numpy`
   - `mss`
+- **Optional (for interactive ROI selection):**
+  - `slop` utility (e.g., `sudo apt install slop`) for `select_roi_interactive()`
+  - `opencv-python` (e.g., `pip install opencv-python`) for `select_roi_interactive_cv()`
 
 ### Setting up the Python environment
 
@@ -46,6 +53,9 @@ Or install manually:
 
 ```bash
 pip install python-xlib numpy mss
+# Optional dependencies
+# pip install opencv-python
+# sudo apt install slop # Or your distro's equivalent
 ```
 
 ---
@@ -202,7 +212,55 @@ print(f"Captured region shape: {img_region.shape}")
 
 ```
 
-### 7. Stop the Background Updater
+### 7. Interactively Select a Region of Interest (ROI)
+
+You can let the user select a rectangular area within the target window. The methods return a tuple `(x, y, width, height)` relative to the window's top-left corner, or `None` if selection fails or is cancelled.
+
+#### Using `slop` (External Utility)
+
+This method requires the `slop` command-line tool to be installed. It's generally simpler but relies on an external dependency.
+
+```python
+# Ensure 'slop' is installed (e.g., sudo apt install slop)
+roi_tuple = interactor.select_roi_interactive()
+
+if roi_tuple:
+    x, y, w, h = roi_tuple
+    print(f"Selected ROI using slop: x={x}, y={y}, w={w}, h={h}")
+    # You can now use this ROI, e.g., capture it
+    roi_capture = interactor.capture(xywh=roi_tuple)
+    print(f"Captured slop ROI shape: {roi_capture.shape}")
+else:
+    print("ROI selection using slop cancelled or failed.")
+
+```
+
+#### Using OpenCV (Built-in Window)
+
+This method requires `opencv-python` to be installed. It captures the window content (or uses a provided image) and displays it in an OpenCV window where the user can draw the ROI.
+
+```python
+# Ensure 'opencv-python' is installed (pip install opencv-python)
+
+# Option 1: Let the method capture the window content internally
+roi_tuple_cv = interactor.select_roi_interactive_cv()
+
+# Option 2: Provide a pre-captured image (must be NumPy array)
+# initial_image = interactor.capture()
+# roi_tuple_cv = interactor.select_roi_interactive_cv(image=initial_image)
+
+if roi_tuple_cv:
+    x, y, w, h = roi_tuple_cv
+    print(f"Selected ROI using OpenCV: x={x}, y={y}, w={w}, h={h}")
+    # Capture the selected region
+    roi_capture_cv = interactor.capture(xywh=roi_tuple_cv)
+    print(f"Captured OpenCV ROI shape: {roi_capture_cv.shape}")
+else:
+    print("ROI selection using OpenCV cancelled or failed.")
+
+```
+
+### 8. Stop the Background Updater
 
 When you are finished interacting with the window, stop the background thread.
 
@@ -226,6 +284,7 @@ print("Background updater stopped.")
 - Runs a background thread (`threading`) to periodically call `xwininfo` and keep the window's position and size (`geometry`) updated. This handles cases where the window is moved or resized after initialization.
 - Sends low-level synthetic mouse (`ButtonPress`, `ButtonRelease`) and keyboard (`KeyPress`, `KeyRelease`) events directly to the window.
 - Uses the high-performance `mss` library for efficient screen capture, returning a NumPy array.
+- Can optionally use external `slop` or internal `opencv-python` for interactive ROI selection.
 
 ---
 
@@ -241,8 +300,10 @@ print("Background updater stopped.")
 Run the included example:
 
 ```bash
-uv run main.py
+uv run python main.py
 ```
+
+The example demonstrates activation, clicking, key sending, ROI selection (both methods if dependencies are met), and benchmarking capture speed.
 
 ---
 
