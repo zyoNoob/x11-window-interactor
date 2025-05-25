@@ -154,7 +154,7 @@ class X11WindowInteractor:
         self.window.send_event(motion, propagate=True)
         self.display.sync()
         self.window.send_event(press, propagate=True)
-        time.sleep(random.uniform(0.05, 0.1)) # Smal delay to simulate human-like interaction
+        time.sleep(random.uniform(0.05, 0.1)) # Small delay to simulate human-like interaction
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
