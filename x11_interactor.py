@@ -122,10 +122,6 @@ class X11WindowInteractor:
             is_hint=0,
             detail=0
         )
-        self.window.send_event(motion, propagate=True)
-        self.display.sync()
-        time.sleep(random.uniform(0.05, 0.1))
-
         # Press and release events
         press = Xlib.protocol.event.ButtonPress(
             time=Xlib.X.CurrentTime,
@@ -153,9 +149,12 @@ class X11WindowInteractor:
             state=0,
             detail=button
         )
-        self.window.send_event(press, propagate=True)
+        
+        # Send the events in order
+        self.window.send_event(motion, propagate=True)
         self.display.sync()
-        time.sleep(random.uniform(0.05, 0.1))
+        self.window.send_event(press, propagate=True)
+        time.sleep(random.uniform(0.05, 0.1)) # Smal delay to simulate human-like interaction
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
