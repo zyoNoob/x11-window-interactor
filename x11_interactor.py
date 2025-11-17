@@ -29,7 +29,7 @@ except ImportError:
 
 
 class X11WindowInteractor:
-    def __init__(self, window_id=None, update_interval=1.0):
+    def __init__(self, window_id=None, update_interval=1.0, model_path=None):
         # Initialize MSS for screen capture
         self.sct = mss.mss()
         # Connect to the X11 display
@@ -49,7 +49,21 @@ class X11WindowInteractor:
 
         # Initialize sapiagent MouseController for human-like mouse movements
         if SAPIAGENT_AVAILABLE:
-            self.mouse_controller = MouseController()
+            if model_path is None:
+                # Auto-find model path relative to this file's directory
+                potential_path = os.path.join(
+                    os.path.dirname(__file__),
+                    "sapiagent-custom",
+                    "output",
+                    "models",
+                    "fcn_dx_dy_mse_supervised.pth",
+                )
+                if os.path.exists(potential_path):
+                    model_path = potential_path
+            self.mouse_controller = MouseController(
+                model_path=model_path,
+                model_type="fcn",
+            )
         else:
             self.mouse_controller = None
 
@@ -112,7 +126,6 @@ class X11WindowInteractor:
     def activate(self):
         # Activate (focus) the window by sending a FocusIn event
         event = Xlib.protocol.event.FocusIn(
-            time=Xlib.X.CurrentTime,
             window=self.window,
             mode=Xlib.X.NotifyNormal,
             detail=Xlib.X.NotifyAncestor,
@@ -132,21 +145,22 @@ class X11WindowInteractor:
             relative_y (int): Y coordinate relative to the window.
             button (int): Mouse button to click (1=left, 2=middle, 3=right).
         """
-        if not SAPIAGENT_AVAILABLE or self.mouse_controller is None:
-            raise RuntimeError(
-                "sapiagent library is not available. Cannot perform mouse click."
-            )
+        if SAPIAGENT_AVAILABLE and self.mouse_controller is not None:
+            # Convert relative coordinates to absolute screen coordinates
+            absolute_x = self.window_info["x"] + relative_x
+            absolute_y = self.window_info["y"] + relative_y
 
-        # Convert relative coordinates to absolute screen coordinates
-        absolute_x = self.window_info["x"] + relative_x
-        absolute_y = self.window_info["y"] + relative_y
+            # Map button number to button name
+            button_map = {1: "left", 2: "middle", 3: "right"}
+            button_name = button_map.get(button, "left")
 
-        # Map button number to button name
-        button_map = {1: "left", 2: "middle", 3: "right"}
-        button_name = button_map.get(button, "left")
+            motion_duration = time.sleep(random.uniform(0.02, 0.4))
 
-        # Perform the click using sapiagent
-        self.mouse_controller.click_at(absolute_x, absolute_y, button=button_name)
+            # Perform the click using sapiagent
+            self.mouse_controller.click_at(absolute_x, absolute_y, button=button_name, duration=motion_duration)
+        else:
+            # Fallback to xdotool if sapiagent is not available
+            self._click_xdotool(relative_x, relative_y, button)
 
     def _click_xdotool(self, relative_x, relative_y, button=1):
         """Simulates a click using the 'xdotool' command-line utility."""
