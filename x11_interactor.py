@@ -17,9 +17,8 @@ try:
 except ImportError:
     cv2 = None  # Handle case where OpenCV is not installed
 
-# Import sapiagent for human-like mouse control from local sapiagent-custom
+# Import sapiagent for human-like mouse control
 try:
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "sapiagent-custom"))
     from sapiagent import MouseController, init_controller
 
     SAPIAGENT_AVAILABLE = True
@@ -154,10 +153,12 @@ class X11WindowInteractor:
             button_map = {1: "left", 2: "middle", 3: "right"}
             button_name = button_map.get(button, "left")
 
-            motion_duration = time.sleep(random.uniform(0.02, 0.4))
+            motion_duration = random.uniform(0.02, 0.4)
 
             # Perform the click using sapiagent
-            self.mouse_controller.click_at(absolute_x, absolute_y, button=button_name, duration=motion_duration)
+            self.mouse_controller.click_at(
+                absolute_x, absolute_y, button=button_name, duration=motion_duration
+            )
         else:
             # Fallback to xdotool if sapiagent is not available
             self._click_xdotool(relative_x, relative_y, button)
