@@ -126,6 +126,7 @@ class X11WindowInteractor:
         shell_command = (
             f"xdotool windowfocus {window_id_hex} && "
             f"xdotool mousemove --window {window_id_hex} {relative_x} {relative_y} && "
+            f"sleep {random.uniform(0.1, 0.5):.2f} && " # Add a random delay for application to update rendering
             f"xdotool click {button}"
         )
         try:
