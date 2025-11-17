@@ -47,7 +47,9 @@ def main():
     # Example usage
     interactor.activate()
     print("Cursor relative to window:", coordinates)
+    print("Clicking")
     interactor.click(coordinates[0], coordinates[1])
+    print("Clicked")
     time.sleep(1) # Reduced sleep time
     interactor.send_key('1')
     time.sleep(1) # Reduced sleep time

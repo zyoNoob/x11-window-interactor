@@ -98,63 +98,73 @@ class X11WindowInteractor:
         self.display.flush()
         time.sleep(0.05)
 
-    def click(self, relative_x, relative_y, button=1):
+    def click(self, relative_x, relative_y, button=1, method='xdotool'):
         """
         Simulate a mouse click at the given relative coordinates.
 
+        This method can use different backends. The 'xdotool' method is more
+        robust for applications that reject synthetic events, while the 'xlib'
+        method uses the native python-xlib library.
+
         Parameters:
-            relative_x (int): X coordinate relative to the window
-            relative_y (int): Y coordinate relative to the window
-            button (int): Mouse button to click (1 = left, 2 = middle, 3 = right)
+            relative_x (int): X coordinate relative to the window.
+            relative_y (int): Y coordinate relative to the window.
+            button (int): Mouse button to click (1=left, 2=middle, 3=right).
+            method (str): The backend to use, either 'xdotool' or 'xlib'.
         """
+        if method == 'xdotool':
+            self._click_xdotool(relative_x, relative_y, button)
+        elif method == 'xlib':
+            self._click_xlib(relative_x, relative_y, button)
+        else:
+            raise ValueError("Invalid click method. Choose 'xdotool' or 'xlib'.")
+
+    def _click_xdotool(self, relative_x, relative_y, button=1):
+        """Simulates a click using the 'xdotool' command-line utility."""
+        # NOTE: Requires the 'xdotool' command-line utility to be installed.
+        window_id_hex = hex(self.window_id)
+        shell_command = (
+            f"xdotool windowfocus {window_id_hex} && "
+            f"xdotool mousemove --window {window_id_hex} {relative_x} {relative_y} && "
+            f"xdotool click {button}"
+        )
+        try:
+            subprocess.run(
+                shell_command, shell=True, check=True, capture_output=True, text=True
+            )
+        except FileNotFoundError:
+            print("Error: 'xdotool' command not found. Please install it to use the 'xdotool' click method.")
+        except subprocess.CalledProcessError as e:
+            print(f"An error occurred while running xdotool: {e}\nStderr: {e.stderr}")
+
+    def _click_xlib(self, relative_x, relative_y, button=1):
+        """Simulates a click using the python-xlib library."""
         # Move cursor first (optional but can help with some UIs)
         motion = Xlib.protocol.event.MotionNotify(
-            time=Xlib.X.CurrentTime,
-            root=self.root,
-            window=self.window,
-            same_screen=1,
-            child=Xlib.X.NONE,
+            time=Xlib.X.CurrentTime, root=self.root, window=self.window,
+            same_screen=1, child=Xlib.X.NONE,
             root_x=self.window_info['x'] + relative_x,
             root_y=self.window_info['y'] + relative_y,
-            event_x=relative_x,
-            event_y=relative_y,
-            state=0,
-            is_hint=0,
-            detail=0
+            event_x=relative_x, event_y=relative_y,
+            state=0, is_hint=0, detail=0
         )
         # Press and release events
         press = Xlib.protocol.event.ButtonPress(
-            time=Xlib.X.CurrentTime,
-            root=self.root,
-            window=self.window,
-            same_screen=1,
-            child=Xlib.X.NONE,
-            root_x=0,
-            root_y=0,
-            event_x=relative_x,
-            event_y=relative_y,
-            state=0,
-            detail=button
+            time=Xlib.X.CurrentTime, root=self.root, window=self.window,
+            same_screen=1, child=Xlib.X.NONE, root_x=0, root_y=0,
+            event_x=relative_x, event_y=relative_y, state=0, detail=button
         )
         release = Xlib.protocol.event.ButtonRelease(
-            time=Xlib.X.CurrentTime,
-            root=self.root,
-            window=self.window,
-            same_screen=1,
-            child=Xlib.X.NONE,
-            root_x=0,
-            root_y=0,
-            event_x=relative_x,
-            event_y=relative_y,
-            state=0,
-            detail=button
+            time=Xlib.X.CurrentTime, root=self.root, window=self.window,
+            same_screen=1, child=Xlib.X.NONE, root_x=0, root_y=0,
+            event_x=relative_x, event_y=relative_y, state=0, detail=button
         )
         
         # Send the events in order
         self.window.send_event(motion, propagate=True)
         self.display.sync()
         self.window.send_event(press, propagate=True)
-        time.sleep(random.uniform(0.05, 0.1)) # Small delay to simulate human-like interaction
+        time.sleep(random.uniform(0.05, 0.1))
         self.window.send_event(release, propagate=True)
         self.display.sync()
 
