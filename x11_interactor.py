@@ -9,14 +9,17 @@ import time
 import random
 import mss
 import threading
+import os
+import sys
 
 try:
     import cv2
 except ImportError:
     cv2 = None  # Handle case where OpenCV is not installed
 
-# Import sapiagent for human-like mouse control
+# Import sapiagent for human-like mouse control from local sapiagent-custom
 try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "sapiagent-custom"))
     from sapiagent import MouseController, init_controller
 
     SAPIAGENT_AVAILABLE = True
