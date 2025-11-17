@@ -10,3 +10,6 @@ dependencies = [
     "opencv-python>=4.11.0.86",
     "python-xlib>=0.33",
 ]
+
+[tool.setuptools]
+py-modules = ["x11_interactor"]

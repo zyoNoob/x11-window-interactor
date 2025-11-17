@@ -1,0 +1,3 @@
+[submodule "sapiagent-custom"]
+	path = sapiagent-custom
+	url = git@github.com:zyoNoob/sapiagent-custom.git
